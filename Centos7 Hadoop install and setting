@@ -1,0 +1,165 @@
+-------------------------------------------------
+
+init 0 : 시스템 종료 / init 6 : 시스템 재부팅
+--------------------------------------------
+pwd : 현재 위치 디렉토리
+cd : 경로 이동
+ls : 디렉토리 목록 확인
+cp : 복사 / mv : 이동
+mkdir : 디렉토리 생성
+mkdir -p : 하위 디렉토리까지 한번에 생성
+rm : 파일 삭제 / rm -R(=rmdir) : 디렉토리 삭제
+vi : 편집
+ps : 프로세스 상태 확인
+head : 파일의 앞부분을 보고싶은 줄 수만큼 보여줌
+tail : 파일의 뒷부분을 보고싶은 줄 수만큼 보여줌
+more/less : 화면 단위로 내용 출력
+(more는 페이지단위, less는 내부명령어 존재)
+find : 특정 파일이나 디렉토리 검색
+--------------------------------------------
+-a : 숨김파일 포함하여 디렉토리의 모든 항목 표시
+-d : 디렉토리 정보만 표시(-l 과 같이 사용)
+-F : 파일 종류
+-l : 파일 상세정보
+
+------------------------------------------
+파일 전체권한 주기 : chmod -Rf 777 /root/data
+
+타일 사용자 		그룹 		그외
+-  	rwx  		rwx  		rwx
+> r: 읽기
+> w: 쓰기
+> x: 실행
+
+rm -Rf 파일이름 : 삭제
+----------------하둡설치 환경설정---------------
+#Hadoop 기본 설정
+hadoop-env.sh - 환경변수
+core-site.xml - 환경 정보
+hdfs-site.xml - hdfs 환경 정보
+
+경로: cd /root/hadoop/etc/hadoop
+
+#수정
+ⓐ자바 경로 확인
+echo $JAVA_HOME
+java -version
+
+① hadoop-env.sh 파일 설정
+:set number
+25 export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.242.b08-0.el7_7.x86_64
+113 export HADOOP_PID_DIR=/root/hadoop/pids
+
+② core-site.xml 파일 설정
+<configuration> - 이 안에 밑에 내용을 기입
+    <property>
+       <name>fs.defaultFS</name>
+      <value>hdfs://localhost:9000</value>
+    </property>
+</configuration>
+
+③ hdfs-site.xml 파일 설정
+ <property>
+  <name>dfs.replication</name>
+  <value>1</value>
+ </property>
+
+ <property>
+  <name>dfs.permissions</name>
+  <value>false</value>
+ </property>
+
+ <property>
+  <name>dfs.namenode.name.dir</name>
+  <value>file:/root/hadoop/namenode</value>
+ </property>
+
+ <property>
+  <name>dfs.datanode.data.dir</name>
+  <value>file:/root/hadoop/datanode</value>
+ </property>
+
+#하둡 초기화
+hadoop namenode -format
+
+#하둡동작
+start-all.sh >> 비번 >> jps (동작확인)
+stop-all.sh  >> 비번 >> jps (동작확인)
+
+#키생성 및 공유
+ssh-keygen -t rsa -P ""
+ls -al .ssh : 키생성확인
+cat .ssh/id_rsa.pub : 암호화된 비밀번호 확인
+cat ./id_rsa.pub >> ./authorized_keys
+: 복사해서 만든다 (공유)
+
+#키없이 로그인 상태 확인
+ssh root@localhost : 비번없이 로그인 가능
+> 정상 exit나가기
+
+MapReduce Tutorial 하둡홈페이지
+Example: WordCount 
+
+hadoop fs -ls /
+hadoop fs -mkdir /input
+
+#파일넣기 
+hadoop fs -put /root/anaconda-ks.cfg(파일 경로) /input(넣을경로)
+
+hadoop fs -ls -R / :하위 디렉토리까지 확인
+
+#파일삭제
+
+hadoop fs -rm /input/anaconda-ks.cfg(지울경로)
+
+전체 디렉토리까지 지우기 : 
+hadoop fs -rm -r /input
+
+ls -l $HADOOP_HOME/share/hadoop/mapreduce 안에
+hadoop-mapreduce-examples-2.9.2.jar 에 wordcount
+가있음
+
+hadoop jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.9.2.jar wordcount
+/root/anaconda-ks.cfg (읽어들일 대상) / (저장경로)
+
+hadoop fs -mkdir /output : 디렉토리가 있어야 오류가 안난다.
+
+읽어들일 대상도 하둡영역에 있어야한다.
+
+hadoop fs -mkdir /user
+hadoop fs -mkdir /user/root
+hadoop fs -mkdir /user/root/input
+hadoop fs -put /root/anaconda-ks.cfg /user/root/input
+hadoop fs -ls -R /user
+: 넣을 경로생성
+hadoop jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.9.2.jar wordcount input output : 인풋에 있는걸 아웃풋으로 이동
+
+hadoop fs -ls -R /user : 아웃풋으로 이동됐는지 확인
+
+hadoop fs -cat /user/root/output/part-r-00000
+cat /root/anaconda-ks.cfg
+
+#하둡 웹 서비스
+http://ip:50070
+
+-------------------------------------------
+#데이터 하둡으로 저장
+hadoop fs -put /root/data/ /user/root/csv/ 
+hadoop fs -ls -R /user/root/csv
+hadoop fs -mv /user/root/csv/data/* /user/root/csv
+hadoop fs -ls -R /user/root/csv
+hadoop fs -ls -R 
+hadoop fs -rm -r /input
+hadoop fs -rm -r /output
+hadoop fs -ls -R /
+#프로젝트 옮긴후 하둡에서 실행
+hadoop jar /root/hadoop.jar kr.gudi.hadoop.App
+
+hadoop jar /root/hadoop.jar kr.gudi.hadoop.App 1 2 : 예외처리
+
+hadoop fs -ls -R /user/root/input : 인풋확인
+hadoop fs -ls -R /user/root/output : 아웃풋확인
+
+hadoop fs -rm /user/root/output/* : 삭제
+
+ hadoop jar /root/hadoop.jar kr.gudi.hadoop.App input output : 결과 확인
